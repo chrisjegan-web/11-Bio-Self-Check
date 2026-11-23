@@ -102,6 +102,13 @@ var EXTRA_NAME = 'Ribosome';
    label:true links the statement to the Label the cell activity.
    ideas links it to self-check questions, as [set id, idea name].
    ============================================================ */
+/* The confidence scale students use on the checklist. */
+var RATINGS = [
+ { r:0, short:'New to me', text:'New to me. I do not know this yet.' },
+ { r:1, short:'Recognise it', text:'I recognise it, but I could not explain it.' },
+ { r:2, short:'Explain most', text:'I could explain most of it.' },
+ { r:3, short:'Explain all', text:'I could explain all of it without my notes.' }
+];
 var CHECKLIST = [
  { title:'Cells and their structure', items:[
   { id:'c1', text:'I can explain why the cell is the basic unit of all living things.', ideas:[['cells','What is made of cells']] },
@@ -152,7 +159,7 @@ function normCode(s) { s = String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '
 /* ---------- progress: one object for each student ----------
    { label:{tries:[{id,t,date,right,total,missed}]},
      sets:{ setId:{tries:[{id,t,date,right,total,results:[{idea,first,guess,wrong}]}]} },
-     conf:{ itemId:{on,t} } }                                   */
+     conf:{ itemId:{r,t,r0,t0} } }   r = latest rating 0 to 3, r0 = first rating   */
 function tidyTries(list) {
   list = (list || []).filter(function (x) { return x && typeof x === 'object'; });
   list.forEach(function (x, i) { if (!x.id) x.id = 'old' + i + '-' + (x.date || '').replace(/ /g, ''); if (!x.t) x.t = Date.parse(x.date) || 0; });
@@ -173,8 +180,27 @@ function mergeProgress(a, b) {
   var ids = {}; for (k in (a.sets || {})) ids[k] = 1; for (k in (b.sets || {})) ids[k] = 1;
   for (k in ids) out.sets[k] = { tries: mergeTries(a.sets && a.sets[k] && a.sets[k].tries, b.sets && b.sets[k] && b.sets[k].tries) };
   var ca = a.conf || {}, cb = b.conf || {}, cids = {}; for (k in ca) cids[k] = 1; for (k in cb) cids[k] = 1;
-  for (k in cids) out.conf[k] = (!cb[k] || (ca[k] && ca[k].t >= cb[k].t)) ? ca[k] : cb[k];
+  for (k in cids) {
+    var x = tidyRating(ca[k]), y = tidyRating(cb[k]);
+    if (!x || !y) { if (x || y) out.conf[k] = x || y; continue; }
+    var late = x.t >= y.t ? x : y, early = x.t0 <= y.t0 ? x : y;
+    out.conf[k] = { r:late.r, t:late.t, r0:early.r0, t0:early.t0 };
+  }
   return out;
+}
+/* A rating is { r, t, r0, t0 }. An old-style tick ({on:true}) becomes a rating of 3. */
+function tidyRating(c) {
+  if (!c) return null;
+  if (typeof c.r !== 'number') { if (!c.on) return null; c = { r:3, t:c.t || 0 }; }
+  return { r:c.r, t:c.t || 0, r0: typeof c.r0 === 'number' ? c.r0 : c.r, t0: c.t0 || c.t || 0 };
+}
+function ratingOf(p, id) { var c = p && p.conf && p.conf[id]; return c && typeof c.r === 'number' ? c : null; }
+/* Does the rating agree with the self-check evidence?  'over', 'under' or '' */
+function ratingGap(rating, ev) {
+  if (!rating) return '';
+  if (rating.r >= 2 && ev.state === 'notyet') return 'over';
+  if (rating.r <= 1 && ev.state === 'secure') return 'under';
+  return '';
 }
 function triesOf(p, id) { if (!p) return []; if (id === 'label') return (p.label && p.label.tries) || []; return (p.sets && p.sets[id] && p.sets[id].tries) || []; }
 function lastOf(list) { return list.length ? list[list.length - 1] : null; }

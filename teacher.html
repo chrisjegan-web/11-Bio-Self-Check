@@ -166,14 +166,14 @@ function drawReport() {
   var t2 = el('table'); t2.appendChild(el('tr', null, [el('th', { text:'Student' }), el('th', { text:'Last active' }), el('th', { text:'Label the cell' })].concat(SETS.map(function (s) { return el('th', { text:s.title }); })).concat([el('th', { text:'Emphasise (top two)' }), el('th', { text:'Checklist' })])));
   list.forEach(function (c) {
     var p = students[c], pts = pointsFor(p), la = lastActive(p), so = signoffs[c] || {};
-    var nConf = 0, nShown = 0; allItems().forEach(function (i) { if (p && p.conf && p.conf[i.id] && p.conf[i.id].on) nConf++; if (so[i.id]) nShown++; });
+    var nRated = 0, nHigh = 0, nShown = 0; allItems().forEach(function (i) { var c = ratingOf(p, i.id); if (c) { nRated++; if (c.r >= 2) nHigh++; } if (so[i.id]) nShown++; });
     var who = el('td', null, [el('button', { cls:'btn alt mini', text:nameOf(c), onclick:function () { openCode = c; go('student'); } }), el('div', { cls:'small', text:c + (clsOf(c) ? '  ' + clsOf(c) : '') })]);
     var em = el('td');
     if (!p) em.appendChild(el('span', { cls:'small', text:'Has not entered their code yet.' }));
     else if (!la) em.appendChild(el('span', { cls:'small', text:'Code entered. No activity finished yet.' }));
     else if (!pts.length) em.appendChild(el('span', { cls:'yes', text:'Nothing flagged on latest tries.' }));
     else { var ul = el('ul', { cls:'pts' }); pts.slice(0, 2).forEach(function (pt) { ul.appendChild(point(pt, false)); }); em.appendChild(ul); if (pts.length > 2) em.appendChild(el('span', { cls:'small', text:'and ' + (pts.length - 2) + ' more' })); }
-    t2.appendChild(el('tr', null, [who, el('td', { text: la ? fmtDate(la) : '' }), scoreCell(p, 'label')].concat(SETS.map(function (s) { return scoreCell(p, s.id); })).concat([em, el('td', { text:'Confident ' + nConf + ', shown ' + nShown + ' of ' + nItems })])));
+    t2.appendChild(el('tr', null, [who, el('td', { text: la ? fmtDate(la) : '' }), scoreCell(p, 'label')].concat(SETS.map(function (s) { return scoreCell(p, s.id); })).concat([em, el('td', { text:'Rated ' + nRated + ' of ' + nItems + '. At 2 or 3: ' + nHigh + '. Shown: ' + nShown + '.' })])));
   });
   card.appendChild(t2);
   card.appendChild(el('p', { cls:'small', text:'Scores for question sets are the number right on the first try. "3 then 6/8" means 3 on the first attempt and 6 on the latest. Press a name for the full list, strategies and checklist.' }));
@@ -200,12 +200,12 @@ function drawStudent(c) {
   }
   card.appendChild(el('h3', { text:'Checklist' }));
   card.appendChild(el('p', { cls:'small', text:'Tick "Shown to me" when the student has proved it to you in class. The tick appears on the student’s own checklist. The self-check column is evidence to weigh, not proof.' }));
+  card.appendChild(el('p', { cls:'small', text:'Student rating: ' + RATINGS.map(function (x) { return x.r + ' = ' + x.short.toLowerCase(); }).join(', ') + '.' }));
   var status = el('p', { cls:'small', text:'' });
   CHECKLIST.forEach(function (g) {
-    var tbl = el('table'); tbl.appendChild(el('tr', null, [el('th', { text:g.title }), el('th', { text:'Student feels confident' }), el('th', { text:'Self-check' }), el('th', { text:'Shown to me' })]));
+    var tbl = el('table'); tbl.appendChild(el('tr', null, [el('th', { text:g.title }), el('th', { text:'Student rating' }), el('th', { text:'Self-check' }), el('th', { text:'Shown to me' })]));
     g.items.forEach(function (item) {
-      var conf = !!(p && p.conf && p.conf[item.id] && p.conf[item.id].on), ev = evidenceFor(item, p);
-      var mismatch = conf && ev.state === 'notyet';
+      var rt = ratingOf(p, item.id), ev = evidenceFor(item, p), gap = ratingGap(rt, ev);
       var box = el('input', { type:'checkbox', 'aria-label':'Shown to me: ' + item.text }); box.checked = !!so[item.id];
       var when = el('div', { cls:'small', text: so[item.id] || '' });
       box.addEventListener('change', function () {
@@ -213,7 +213,7 @@ function drawStudent(c) {
         signoffs[c] = so; when.textContent = so[item.id] || ''; status.textContent = 'Saving...';
         Cloud.put('signoffs', c, so, true).then(function (r) { status.textContent = r.status === 200 ? 'Saved.' : 'Not saved (code ' + r.status + '). Check your connection and tick it again.'; if (r.status !== 200) { box.checked = !box.checked; if (box.checked) so[item.id] = today(); else delete so[item.id]; when.textContent = so[item.id] || ''; } });
       });
-      tbl.appendChild(el('tr', null, [el('td', { text:item.text }), el('td', null, [conf ? el('span', { cls:'yes', text:'Yes' }) : el('span', { cls:'small', text:'Not ticked' }), mismatch ? el('div', { cls:'no', text:'Confident, but self-check says not yet' }) : null]), el('td', { cls: ev.state === 'notyet' ? 'no' : ev.state === 'secure' ? 'yes' : 'small', text:ev.text }), el('td', { cls:'tick' }, [box, when])]));
+      tbl.appendChild(el('tr', null, [el('td', { text:item.text }), el('td', null, [rt ? el('strong', { text:rt.r + ': ' + RATINGS[rt.r].short }) : el('span', { cls:'small', text:'Not rated' }), rt && rt.r0 !== rt.r ? el('div', { cls:'small', text:'Started at ' + rt.r0 }) : null, gap === 'over' ? el('div', { cls:'no', text:'Rated higher than the self-check shows' }) : gap === 'under' ? el('div', { cls:'small', text:'Rated lower than the self-check shows' }) : null]), el('td', { cls: ev.state === 'notyet' ? 'no' : ev.state === 'secure' ? 'yes' : 'small', text:ev.text }), el('td', { cls:'tick' }, [box, when])]));
     });
     card.appendChild(tbl);
   });
@@ -292,7 +292,7 @@ function drawSetup() {
 "    // Teacher ticks. Students can read their own. Only teachers can change them.\n    match /signoffs/{code} {\n      allow get: if true;\n      allow list, write: if teacher();\n    }\n  }\n}" }));
   card.appendChild(el('h3', { text:'What is stored, and where' }));
   var ul = el('ul');
-  ['Online: each student’s code, their self-check results, their "I feel confident" ticks and your "Shown to me" ticks. No names, emails or other details.',
+  ['Online: each student’s code, their self-check results, their 0 to 3 checklist ratings and your "Shown to me" ticks. No names, emails or other details.',
    'On this device only: the list that links each code to a name. Use "Save name list to a file" to copy it to another device or to your co-teacher.',
    'Anyone who knows a student’s code can see and add to that student’s results, so treat codes like a locker number: private, but not a password for anything important.'
   ].forEach(function (s) { ul.appendChild(el('li', { text:s })); });

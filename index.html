@@ -55,7 +55,12 @@
   .btn.mini { padding:6px 10px; font-size:14px; }
   .demo { background:var(--fix-soft); border:1px solid var(--fix); border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:15px; }
   td.tick { width:120px; text-align:center; }
-  td.tick input { width:26px; height:26px; cursor:pointer; }
+  td.ratecell { width:190px; }
+  .rates { display:flex; gap:6px; }
+  .rate { width:40px; height:40px; font-size:17px; font-weight:bold; border:2px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; cursor:pointer; }
+  .rate[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); color:#fff; outline:2px solid var(--ink); outline-offset:1px; }
+  table.key { width:auto; }
+  table.key th { width:44px; text-align:center; }
   .yes { color:var(--good); font-weight:bold; }
   .ev { display:block; font-size:14px; color:var(--quiet); margin-top:3px; }
   .ev.notyet { color:var(--fix); }
@@ -307,29 +312,44 @@ function drawChecklist() {
   var online = Cloud.mode !== 'device';
   var card = el('div', { cls:'card' }); view.appendChild(card);
   card.appendChild(el('h2', { text:'My checklist' }));
-  card.appendChild(el('p', { text:'This is what Unit 1, Outcome 1 asks you to be able to do. You will meet these through Semester 1, so most boxes start empty.' }));
-  var steps = el('ol');
-  steps.appendChild(el('li', { text:'Tick "I feel confident" when you can do it without your notes.' }));
-  steps.appendChild(el('li', { text:'Then prove it. Show your teacher: explain it, draw it or answer a question in class.' }));
-  steps.appendChild(el('li', { text: online ? 'Your teacher ticks "Shown to my teacher". Only your teacher can tick that box.' : 'Ask your teacher to sign it off on your paper checklist.' }));
-  card.appendChild(steps);
-  var items = allItems(), nConf = 0, nShown = 0;
-  items.forEach(function (i) { if (mem.conf[i.id] && mem.conf[i.id].on) nConf++; if (mem.shown[i.id]) nShown++; });
+  card.appendChild(el('p', { text:'This is what Unit 1, Outcome 1 asks you to be able to do. You will meet these through Semester 1, so most start low. A low number is not a problem: it tells you and your teacher where to start.' }));
+  card.appendChild(el('p', null, [el('strong', { text:'Rate each one from 0 to 3. Change your rating as you learn.' })]));
+  var key = el('table', { cls:'key' });
+  RATINGS.forEach(function (x) { key.appendChild(el('tr', null, [el('th', { text:String(x.r) }), el('td', { text:x.text })])); });
+  card.appendChild(key);
+  card.appendChild(el('p', { text: online ? 'When you reach 2 or 3, prove it. Show your teacher: explain it, draw it or answer a question in class. Your teacher then ticks "Shown to my teacher". Only your teacher can tick that box.' : 'When you reach 2 or 3, prove it. Show your teacher: explain it, draw it or answer a question in class.' }));
+  var items = allItems();
   var count = el('p', { cls:'score', text:'' });
-  function setCount() { count.textContent = 'I feel confident: ' + nConf + ' of ' + items.length + (online ? '.  Shown to my teacher: ' + nShown + ' of ' + items.length + '.' : '.'); }
+  function setCount() {
+    var rated = 0, high = 0, shown = 0;
+    items.forEach(function (i) { var c = ratingOf(mem, i.id); if (c) { rated++; if (c.r >= 2) high++; } if (mem.shown[i.id]) shown++; });
+    count.textContent = 'Rated: ' + rated + ' of ' + items.length + '.  At 2 or 3: ' + high + '.' + (online ? '  Shown to my teacher: ' + shown + '.' : '');
+  }
   setCount(); card.appendChild(count);
   CHECKLIST.forEach(function (g) {
     var tbl = el('table');
-    tbl.appendChild(el('tr', null, [el('th', { text:g.title }), el('th', { text:'I feel confident' }), online ? el('th', { text:'Shown to my teacher' }) : null]));
+    tbl.appendChild(el('tr', null, [el('th', { text:g.title }), el('th', { text:'My rating' }), online ? el('th', { text:'Shown to my teacher' }) : null]));
     g.items.forEach(function (item) {
-      var ev = evidenceFor(item, progress());
-      var box = el('input', { type:'checkbox', 'aria-label':'I feel confident: ' + item.text });
-      box.checked = !!(mem.conf[item.id] && mem.conf[item.id].on);
-      box.addEventListener('change', function () { mem.conf[item.id] = { on:box.checked, t:Date.now() }; nConf += box.checked ? 1 : -1; setCount(); save(); });
-      var words = el('td', null, [document.createTextNode(item.text)]);
-      if (ev.state !== 'none') words.appendChild(el('span', { cls:'ev ' + ev.state, text:'Self-check: ' + ev.text.charAt(0).toLowerCase() + ev.text.slice(1) + (ev.state === 'notyet' ? '. Try those questions again before you tick.' : '') }));
+      var words = el('td', null, [document.createTextNode(item.text)]), note = el('span', { cls:'ev' }), was = el('div', { cls:'small' });
+      words.appendChild(note);
+      var btns = RATINGS.map(function (x) {
+        return el('button', { cls:'rate', type:'button', title:x.text, 'aria-label':'Rate ' + x.r + ': ' + x.text + ' ' + item.text, text:String(x.r), onclick:function () {
+          var old = ratingOf(mem, item.id), now = Date.now();
+          mem.conf[item.id] = { r:x.r, t:now, r0: old ? old.r0 : x.r, t0: old ? old.t0 : now };
+          paint(); setCount(); save();
+        } });
+      });
+      function paint() {
+        var c = ratingOf(mem, item.id), ev = evidenceFor(item, progress()), gap = ratingGap(c, ev);
+        btns.forEach(function (b, k) { b.setAttribute('aria-pressed', String(!!c && c.r === k)); });
+        was.textContent = c && c.r0 !== c.r ? 'You started at ' + c.r0 + '.' : '';
+        note.className = 'ev ' + (gap === 'over' ? 'notyet' : ev.state);
+        note.textContent = ev.state === 'none' ? '' : 'Self-check: ' + ev.text.charAt(0).toLowerCase() + ev.text.slice(1) + '.' +
+          (gap === 'over' ? ' Your rating is higher than your self-check result. Try those questions again.' : gap === 'under' ? ' You may know more than you think.' : '');
+      }
+      paint();
       var shown = mem.shown[item.id];
-      tbl.appendChild(el('tr', null, [words, el('td', { cls:'tick' }, [box]), online ? el('td', { cls:'tick' }, [shown ? el('span', { cls:'yes', text:'Yes, ' + shown }) : el('span', { cls:'small', text:'Not yet' })]) : null]));
+      tbl.appendChild(el('tr', null, [words, el('td', { cls:'ratecell' }, [el('div', { cls:'rates' }, btns), was]), online ? el('td', { cls:'tick' }, [shown ? el('span', { cls:'yes', text:'Yes, ' + shown }) : el('span', { cls:'small', text:'Not yet' })]) : null]));
     });
     card.appendChild(tbl);
   });
