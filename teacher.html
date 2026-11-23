@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Year 11 Biology Self-Check: Teacher report</title>
+<style>
+  :root { --ink:#1f2933; --quiet:#52606d; --line:#cbd2d9; --bg:#f5f7fa; --card:#ffffff; --accent:#1f6f8b; --accent-soft:#e1f1f6; --good:#1b7f4b; --good-soft:#e3f5ea; --fix:#a15c00; --fix-soft:#fdf1dd; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Arial, Helvetica, sans-serif; font-size:16px; line-height:1.45; color:var(--ink); background:var(--bg); }
+  header { background:var(--ink); color:#fff; padding:14px 16px; }
+  header h1 { margin:0; font-size:22px; }
+  header p { margin:2px 0 0; font-size:14px; opacity:.9; }
+  main { max-width:1100px; margin:0 auto; padding:14px 14px 60px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 16px; }
+  nav button { padding:10px 16px; font-size:16px; border:2px solid var(--accent); background:#fff; color:var(--accent); border-radius:8px; cursor:pointer; font-weight:bold; }
+  nav button[aria-selected="true"] { background:var(--accent); color:#fff; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  h2 { font-size:20px; margin:0 0 8px; }
+  h3 { font-size:17px; margin:16px 0 6px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; align-items:center; }
+  .btn { padding:9px 16px; font-size:15px; font-weight:bold; border-radius:8px; border:2px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; }
+  .btn.alt { background:#fff; color:var(--accent); }
+  .btn.mini { padding:5px 10px; font-size:14px; }
+  table { border-collapse:collapse; width:100%; margin:8px 0; }
+  th, td { border:1px solid var(--line); padding:7px 8px; text-align:left; font-size:15px; vertical-align:top; }
+  th { background:#eef1f4; }
+  input[type=text], input[type=email], input[type=password], textarea, select { padding:9px; font-size:16px; border:2px solid var(--line); border-radius:6px; background:#fff; color:var(--ink); font-family:inherit; }
+  textarea { width:100%; }
+  .small { font-size:14px; color:var(--quiet); }
+  .demo, .warn { background:var(--fix-soft); border:1px solid var(--fix); border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:15px; }
+  .tag { display:inline-block; font-size:13px; font-weight:bold; border-radius:10px; padding:1px 8px; margin-right:6px; white-space:nowrap; }
+  .tag.wrongSure { background:#f8d7d0; color:#8a2a14; }
+  .tag.label, .tag.wrongGuess { background:var(--fix-soft); color:var(--fix); }
+  .tag.rightGuess { background:var(--accent-soft); color:var(--accent); }
+  .yes { color:var(--good); font-weight:bold; }
+  .no { color:var(--fix); font-weight:bold; }
+  ul.pts { margin:0; padding-left:18px; }
+  ul.pts li { margin:4px 0; }
+  td.tick { text-align:center; width:110px; }
+  td.tick input { width:24px; height:24px; cursor:pointer; }
+  .slips { display:grid; grid-template-columns:repeat(3, 1fr); gap:0; }
+  .slip { border:1px dashed var(--quiet); padding:12px; font-size:15px; break-inside:avoid; }
+  .slip .code { font-size:22px; font-weight:bold; letter-spacing:1px; }
+  pre { background:#eef1f4; border:1px solid var(--line); border-radius:6px; padding:10px; font-size:13px; overflow:auto; white-space:pre-wrap; }
+  ol li { margin:6px 0; }
+  @media print { nav, .btn, .demo, .noprint, header p { display:none !important; } body { background:#fff; font-size:13px; } .card { border:0; padding:0; } main { max-width:none; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Year 11 Biology Self-Check: Teacher report</h1>
+  <p>What each student needs you to emphasise, and their checklist.</p>
+</header>
+<main>
+  <div id="banner"></div>
+  <nav id="nav" role="tablist"></nav>
+  <div id="view"></div>
+</main>
+
+<script>window.Y11_TEACHER = true;</script>
+<script src="shared.js"></script>
+<script>
+/* Teacher page. Student names are kept on this device only: they are never sent online. */
+var NAMES_KEY = 'y11bio-teacher-names';
+var names = {};                 /* code -> { name, cls }  (this device only) */
+var roster = {}, students = {}, signoffs = {};   /* from the online store, by code */
+var view = document.getElementById('view'), nav = document.getElementById('nav'), banner = document.getElementById('banner');
+var current = 'report', openCode = null, clsFilter = '';
+try { names = JSON.parse(localStorage.getItem(NAMES_KEY) || '{}') || {}; } catch (e) { names = {}; }
+function saveNames() { try { localStorage.setItem(NAMES_KEY, JSON.stringify(names)); } catch (e) {} }
+function nameOf(code) { return names[code] && names[code].name ? names[code].name : '(no name on this device)'; }
+function clsOf(code) { return (names[code] && names[code].cls) || ''; }
+function classes() { var s = {}; Object.keys(roster).forEach(function (c) { if (clsOf(c)) s[clsOf(c)] = 1; }); return Object.keys(s).sort(); }
+function codes() {
+  return Object.keys(roster).filter(function (c) { return !clsFilter || clsOf(c) === clsFilter; })
+    .sort(function (a, b) { return nameOf(a).localeCompare(nameOf(b)) || a.localeCompare(b); });
+}
+function studentPage() { return location.href.replace(/teacher\.html.*$/, 'index.html') + (Cloud.mode === 'demo' ? '?demo' : ''); }
+
+var TABS = [{ id:'report', title:'Class report' }, { id:'codes', title:'Students and codes' }, { id:'setup', title:'Set-up' }];
+function drawNav() {
+  nav.innerHTML = '';
+  if (!Cloud.isTeacher()) return;
+  TABS.forEach(function (t) { nav.appendChild(el('button', { role:'tab', 'aria-selected': String(t.id === current), text:t.title, onclick:function () { go(t.id); } })); });
+  nav.appendChild(el('button', { text:'Refresh', onclick:function () { loadAll().then(function () { go(current); }); } }));
+  nav.appendChild(el('button', { text:'Sign out', onclick:function () { Cloud.signOut(); start(); } }));
+}
+function go(id) {
+  current = id; drawNav(); view.innerHTML = '';
+  if (id === 'report') drawReport(); else if (id === 'codes') drawCodes(); else if (id === 'setup') drawSetup(); else if (id === 'student') drawStudent(openCode);
+  window.scrollTo(0, 0);
+}
+function note(text) { banner.innerHTML = ''; if (Cloud.mode === 'demo') banner.appendChild(el('div', { cls:'demo', text:'Demo mode. Online storage is not set up yet, so everything here is kept in this browser only. See the Set-up tab.' })); if (text) banner.appendChild(el('div', { cls:'warn', text:text })); }
+
+function loadAll() {
+  note('');
+  return Promise.all([Cloud.list('roster'), Cloud.list('students'), Cloud.list('signoffs')]).then(function (r) {
+    if (r[0].status !== 200 || r[1].status !== 200 || r[2].status !== 200) {
+      note(r[0].status === 0 ? 'Could not reach the online store. Check your connection and press Refresh.' : 'The online store refused the request (code ' + (r[0].status !== 200 ? r[0].status : r[1].status !== 200 ? r[1].status : r[2].status) + '). Check that your email is in the rules, and that the rules are published. See the Set-up tab.');
+    }
+    roster = r[0].data || {}; students = r[1].data || {}; signoffs = r[2].data || {};
+  });
+}
+
+/* ---------- sign in ---------- */
+function drawSignIn(msg) {
+  drawNav(); view.innerHTML = '';
+  var card = el('div', { cls:'card' }); view.appendChild(card);
+  card.appendChild(el('h2', { text:'Teacher sign-in' }));
+  var em = el('input', { type:'email', placeholder:'Email', autocomplete:'username' }), pw = el('input', { type:'password', placeholder:'Password', autocomplete:'current-password' });
+  var out = el('p', { cls:'no', text:msg || '' });
+  var doIt = function () { out.textContent = 'Signing in...'; Cloud.signIn(em.value.trim(), pw.value).then(function (r) { if (r.ok) start(); else out.textContent = /INVALID|PASSWORD|EMAIL/.test(r.error) ? 'That email or password is not right.' : 'Sign-in failed: ' + r.error; }); };
+  pw.addEventListener('keydown', function (e) { if (e.key === 'Enter') doIt(); });
+  card.appendChild(el('div', { cls:'row' }, [em, pw, el('button', { cls:'btn', text:'Sign in', onclick:doIt })]));
+  card.appendChild(out);
+}
+
+/* ---------- class report ---------- */
+function scoreCell(p, id) { var t = triesOf(p, id); if (!t.length) return el('td', { cls:'small', text:'Not tried' }); var a = t[0], z = t[t.length - 1]; return el('td', { text: (t.length > 1 ? a.right + ' then ' : '') + z.right + '/' + z.total + (t.length > 1 ? ' (' + t.length + ' tries)' : '') }); }
+function point(pt, withTodo) {
+  var li = el('li', null, [el('span', { cls:'tag ' + pt.kind, text: pt.kind === 'wrongSure' ? 'Sure, wrong' : pt.kind === 'wrongGuess' ? 'Guessed, wrong' : pt.kind === 'rightGuess' ? 'Guessed, right' : 'Labels' }), el('strong', { text:pt.idea + '. ' }), document.createTextNode(pt.mistake)]);
+  if (withTodo) { li.appendChild(el('br')); li.appendChild(el('span', { cls:'small', text:'Strategy: ' + pt.todo })); }
+  return li;
+}
+function clsPicker() {
+  var cs = classes(); if (!cs.length) return null;
+  var s = el('select', { 'aria-label':'Class' }); s.appendChild(el('option', { value:'', text:'All classes' }));
+  cs.forEach(function (c) { var o = el('option', { value:c, text:c }); if (c === clsFilter) o.selected = true; s.appendChild(o); });
+  s.addEventListener('change', function () { clsFilter = s.value; go(current); });
+  return s;
+}
+function drawReport() {
+  var list = codes();
+  var card = el('div', { cls:'card' }); view.appendChild(card);
+  card.appendChild(el('h2', { text:'Class report' }));
+  card.appendChild(el('div', { cls:'row noprint' }, [clsPicker(), el('button', { cls:'btn alt', text:'Print', onclick:function () { window.print(); } }), el('span', { cls:'small', text:fmtDate() + '. Based on each student’s latest try at each activity.' })]));
+  if (!Object.keys(roster).length) { card.appendChild(el('p', { text:'No students yet. Go to Students and codes to add your class.' })); return; }
+
+  /* whole class: which ideas to reteach */
+  var ideas = {}, order = [];
+  list.forEach(function (c) {
+    SETS.forEach(function (s) { var t = lastOf(triesOf(students[c], s.id)); if (!t) return;
+      (t.results || []).forEach(function (r) {
+        var k = s.id + '|' + r.idea; if (!ideas[k]) { ideas[k] = { set:s.title, idea:r.idea, n:0, wrongSure:0, wrongGuess:0, rightGuess:0, mistakes:{} }; order.push(k); }
+        var o = ideas[k]; o.n++;
+        if (!r.first) { o[r.guess ? 'wrongGuess' : 'wrongSure']++; var q = findQ(s.id, r.idea), m = q && r.wrong !== undefined && r.wrong !== null && q.fb[r.wrong] ? q.fb[r.wrong][0] : (r.mistake || ''); if (m) o.mistakes[m] = (o.mistakes[m] || 0) + 1; }
+        else if (r.guess) o.rightGuess++;
+      }); });
+  });
+  card.appendChild(el('h3', { text:'Whole class: ideas to reteach' }));
+  if (!order.length) card.appendChild(el('p', { cls:'small', text:'No question sets finished yet.' }));
+  else {
+    order.sort(function (a, b) { var x = ideas[a], y = ideas[b]; return (y.wrongSure + y.wrongGuess) / y.n - (x.wrongSure + x.wrongGuess) / x.n || y.wrongSure - x.wrongSure; });
+    var t1 = el('table'); t1.appendChild(el('tr', null, [el('th', { text:'Idea' }), el('th', { text:'Students' }), el('th', { text:'Wrong and sure' }), el('th', { text:'Wrong and guessing' }), el('th', { text:'Right but guessing' }), el('th', { text:'Most common mistake' })]));
+    order.forEach(function (k) { var o = ideas[k], top = Object.keys(o.mistakes).sort(function (a, b) { return o.mistakes[b] - o.mistakes[a]; })[0];
+      t1.appendChild(el('tr', null, [el('td', null, [el('strong', { text:o.idea }), el('span', { cls:'small', text:'  ' + o.set })]), el('td', { text:String(o.n) }), el('td', { text:String(o.wrongSure) }), el('td', { text:String(o.wrongGuess) }), el('td', { text:String(o.rightGuess) }), el('td', { text: top ? top + ' (' + o.mistakes[top] + ')' : '' })])); });
+    card.appendChild(t1);
+    card.appendChild(el('p', { cls:'small', text:'Wrong and sure is likely a misconception: this is where your time is best spent. Wrong and guessing is likely a gap. Right but guessing is fragile.' }));
+  }
+
+  /* each student */
+  card.appendChild(el('h3', { text:'Each student: what to emphasise' }));
+  var nItems = allItems().length;
+  var t2 = el('table'); t2.appendChild(el('tr', null, [el('th', { text:'Student' }), el('th', { text:'Last active' }), el('th', { text:'Label the cell' })].concat(SETS.map(function (s) { return el('th', { text:s.title }); })).concat([el('th', { text:'Emphasise (top two)' }), el('th', { text:'Checklist' })])));
+  list.forEach(function (c) {
+    var p = students[c], pts = pointsFor(p), la = lastActive(p), so = signoffs[c] || {};
+    var nConf = 0, nShown = 0; allItems().forEach(function (i) { if (p && p.conf && p.conf[i.id] && p.conf[i.id].on) nConf++; if (so[i.id]) nShown++; });
+    var who = el('td', null, [el('button', { cls:'btn alt mini', text:nameOf(c), onclick:function () { openCode = c; go('student'); } }), el('div', { cls:'small', text:c + (clsOf(c) ? '  ' + clsOf(c) : '') })]);
+    var em = el('td');
+    if (!p) em.appendChild(el('span', { cls:'small', text:'Has not entered their code yet.' }));
+    else if (!la) em.appendChild(el('span', { cls:'small', text:'Code entered. No activity finished yet.' }));
+    else if (!pts.length) em.appendChild(el('span', { cls:'yes', text:'Nothing flagged on latest tries.' }));
+    else { var ul = el('ul', { cls:'pts' }); pts.slice(0, 2).forEach(function (pt) { ul.appendChild(point(pt, false)); }); em.appendChild(ul); if (pts.length > 2) em.appendChild(el('span', { cls:'small', text:'and ' + (pts.length - 2) + ' more' })); }
+    t2.appendChild(el('tr', null, [who, el('td', { text: la ? fmtDate(la) : '' }), scoreCell(p, 'label')].concat(SETS.map(function (s) { return scoreCell(p, s.id); })).concat([em, el('td', { text:'Confident ' + nConf + ', shown ' + nShown + ' of ' + nItems })])));
+  });
+  card.appendChild(t2);
+  card.appendChild(el('p', { cls:'small', text:'Scores for question sets are the number right on the first try. "3 then 6/8" means 3 on the first attempt and 6 on the latest. Press a name for the full list, strategies and checklist.' }));
+}
+
+/* ---------- one student ---------- */
+function drawStudent(c) {
+  var p = students[c], so = signoffs[c] || {};
+  var card = el('div', { cls:'card' }); view.appendChild(card);
+  card.appendChild(el('div', { cls:'row noprint' }, [el('button', { cls:'btn alt', text:'Back to class report', onclick:function () { go('report'); } }), el('button', { cls:'btn alt', text:'Print', onclick:function () { window.print(); } })]));
+  card.appendChild(el('h2', { text:nameOf(c) + '  (' + c + ')' }));
+  if (!p) { card.appendChild(el('p', { text:'This student has not entered their code on the self-check page yet.' })); }
+  else {
+    var t = el('table'); t.appendChild(el('tr', null, [el('th', { text:'Activity' }), el('th', { text:'First result' }), el('th', { text:'Latest result' }), el('th', { text:'When' }), el('th', { text:'Times tried' })]));
+    var any = false;
+    [{ id:'label', title:'Label the cell' }].concat(SETS).forEach(function (s) { var tr = triesOf(p, s.id); if (!tr.length) return; any = true; var a = tr[0], z = tr[tr.length - 1];
+      t.appendChild(el('tr', null, [el('td', { text:s.title }), el('td', { text:a.right + ' out of ' + a.total }), el('td', null, [el('strong', { text:z.right + ' out of ' + z.total })]), el('td', { text:z.date }), el('td', { text:String(tr.length) })])); });
+    if (any) card.appendChild(t); else card.appendChild(el('p', { cls:'small', text:'No activity finished yet.' }));
+    card.appendChild(el('h3', { text:'What to emphasise' }));
+    var pts = pointsFor(p);
+    if (!pts.length) card.appendChild(el('p', { cls:'small', text: any ? 'Nothing flagged on the latest tries.' : 'Nothing to show yet.' }));
+    else { var ul = el('ul', { cls:'pts' }); pts.forEach(function (pt) { ul.appendChild(point(pt, true)); }); card.appendChild(ul);
+      card.appendChild(el('p', { cls:'small', text:'Listed in order: sure and wrong first, because a confident wrong answer is the one to talk through. Pick one or two.' })); }
+  }
+  card.appendChild(el('h3', { text:'Checklist' }));
+  card.appendChild(el('p', { cls:'small', text:'Tick "Shown to me" when the student has proved it to you in class. The tick appears on the student’s own checklist. The self-check column is evidence to weigh, not proof.' }));
+  var status = el('p', { cls:'small', text:'' });
+  CHECKLIST.forEach(function (g) {
+    var tbl = el('table'); tbl.appendChild(el('tr', null, [el('th', { text:g.title }), el('th', { text:'Student feels confident' }), el('th', { text:'Self-check' }), el('th', { text:'Shown to me' })]));
+    g.items.forEach(function (item) {
+      var conf = !!(p && p.conf && p.conf[item.id] && p.conf[item.id].on), ev = evidenceFor(item, p);
+      var mismatch = conf && ev.state === 'notyet';
+      var box = el('input', { type:'checkbox', 'aria-label':'Shown to me: ' + item.text }); box.checked = !!so[item.id];
+      var when = el('div', { cls:'small', text: so[item.id] || '' });
+      box.addEventListener('change', function () {
+        if (box.checked) so[item.id] = today(); else delete so[item.id];
+        signoffs[c] = so; when.textContent = so[item.id] || ''; status.textContent = 'Saving...';
+        Cloud.put('signoffs', c, so, true).then(function (r) { status.textContent = r.status === 200 ? 'Saved.' : 'Not saved (code ' + r.status + '). Check your connection and tick it again.'; if (r.status !== 200) { box.checked = !box.checked; if (box.checked) so[item.id] = today(); else delete so[item.id]; when.textContent = so[item.id] || ''; } });
+      });
+      tbl.appendChild(el('tr', null, [el('td', { text:item.text }), el('td', null, [conf ? el('span', { cls:'yes', text:'Yes' }) : el('span', { cls:'small', text:'Not ticked' }), mismatch ? el('div', { cls:'no', text:'Confident, but self-check says not yet' }) : null]), el('td', { cls: ev.state === 'notyet' ? 'no' : ev.state === 'secure' ? 'yes' : 'small', text:ev.text }), el('td', { cls:'tick' }, [box, when])]));
+    });
+    card.appendChild(tbl);
+  });
+  card.appendChild(status);
+}
+
+/* ---------- students and codes ---------- */
+function drawCodes() {
+  var card = el('div', { cls:'card' }); view.appendChild(card);
+  card.appendChild(el('h2', { text:'Students and codes' }));
+  card.appendChild(el('p', { text:'Each student gets a code. Only the code and the student’s results are stored online. Names stay in this browser on this device, so keep a copy of the name list.' }));
+  var ta = el('textarea', { rows:'6', placeholder:'One name on each line' }), cls = el('input', { type:'text', placeholder:'Class (optional), for example 11A' });
+  var out = el('p', { cls:'small', text:'' });
+  card.appendChild(el('h3', { text:'Add students' })); card.appendChild(ta);
+  card.appendChild(el('div', { cls:'row' }, [cls, el('button', { cls:'btn', text:'Make codes', onclick:function () {
+    var list = ta.value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean); if (!list.length) return;
+    out.textContent = 'Making codes...';
+    var jobs = list.map(function (n) { var c = newCode(); while (roster[c]) c = newCode(); roster[c] = { made:today() };
+      return Cloud.put('roster', c, { made:today() }, true).then(function (r) { if (r.status === 200) { names[c] = { name:n, cls:cls.value.trim() }; return 1; } delete roster[c]; return 0; }); });
+    Promise.all(jobs).then(function (r) { saveNames(); var ok = r.reduce(function (a, b) { return a + b; }, 0); if (ok === list.length) go('codes'); else { out.textContent = ok + ' of ' + list.length + ' codes were saved. Check your connection and add the rest again.'; } });
+  } })]));
+  card.appendChild(out);
+
+  var all = codes();
+  card.appendChild(el('h3', { text:'Your students (' + all.length + ')' }));
+  card.appendChild(el('div', { cls:'row' }, [clsPicker(), el('button', { cls:'btn alt', text:'Print code slips', onclick:function () { drawSlips(all); } }),
+    el('button', { cls:'btn alt', text:'Save name list to a file', onclick:function () { var a = el('a', { href:'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(names, null, 1)), download:'self-check-names.json' }); document.body.appendChild(a); a.click(); a.remove(); } }),
+    (function () { var f = el('input', { type:'file', accept:'.json,application/json', style:'display:none' }); f.addEventListener('change', function () { var file = f.files[0]; if (!file) return; var rd = new FileReader(); rd.onload = function () { try { var j = JSON.parse(rd.result); for (var k in j) if (normCode(k) === k && j[k] && typeof j[k].name === 'string') names[k] = { name:j[k].name, cls:j[k].cls || '' }; saveNames(); go('codes'); } catch (e) { out.textContent = 'That file could not be read.'; } }; rd.readAsText(file); });
+      var b = el('button', { cls:'btn alt', text:'Load name list', onclick:function () { f.click(); } }); var w = el('span', null, [b, f]); return w; })()]));
+  var tbl = el('table'); tbl.appendChild(el('tr', null, [el('th', { text:'Name (this device only)' }), el('th', { text:'Class' }), el('th', { text:'Code' }), el('th', { text:'Has used the page' }), el('th', { text:'' })]));
+  all.forEach(function (c) {
+    var nm = el('input', { type:'text', value: names[c] ? names[c].name : '', placeholder:'Name' }), cl = el('input', { type:'text', value:clsOf(c), size:'6' });
+    var keep = function () { names[c] = { name:nm.value.trim(), cls:cl.value.trim() }; saveNames(); };
+    nm.addEventListener('change', keep); cl.addEventListener('change', keep);
+    var rm = el('button', { cls:'btn alt mini', text:'Remove', onclick:function (ev) { var b = ev.currentTarget;
+      if (!b.getAttribute('data-armed')) { b.setAttribute('data-armed', '1'); b.textContent = 'Press again: deletes this student’s results'; return; }
+      Promise.all([Cloud.del('roster', c), Cloud.del('students', c), Cloud.del('signoffs', c)]).then(function () { delete names[c]; saveNames(); return loadAll(); }).then(function () { go('codes'); }); } });
+    tbl.appendChild(el('tr', null, [el('td', null, [nm]), el('td', null, [cl]), el('td', null, [el('strong', { text:c })]), el('td', { text: students[c] ? 'Yes' : 'Not yet' }), el('td', null, [rm])]));
+  });
+  card.appendChild(tbl);
+  card.appendChild(el('p', { cls:'small', text:'Student page: ' + studentPage() }));
+}
+function drawSlips(list) {
+  view.innerHTML = '';
+  var card = el('div', { cls:'card' }); view.appendChild(card);
+  card.appendChild(el('div', { cls:'row noprint' }, [el('button', { cls:'btn alt', text:'Back', onclick:function () { go('codes'); } }), el('button', { cls:'btn', text:'Print', onclick:function () { window.print(); } })]));
+  var grid = el('div', { cls:'slips' });
+  list.forEach(function (c) { grid.appendChild(el('div', { cls:'slip' }, [el('div', null, [el('strong', { text:nameOf(c) })]), el('div', { text:'Year 11 Biology Self-Check' }), el('div', { cls:'code', text:c }), el('div', { cls:'small', text:'Type this code on the self-check page to save your progress. Keep it in your logbook.' })])); });
+  card.appendChild(grid);
+}
+
+/* ---------- set-up ---------- */
+function drawSetup() {
+  var card = el('div', { cls:'card' }); view.appendChild(card);
+  card.appendChild(el('h2', { text:'Set-up: online storage' }));
+  card.appendChild(el('p', { text: Cloud.mode === 'online' ? 'Online storage is switched on for project "' + CLOUD.projectId + '". Signed in as ' + (Cloud.email() || '') + '.' : 'Online storage is not set up yet. Until it is, the student page keeps results on each device, and this page runs in demo mode.' }));
+  card.appendChild(el('p', { text:'To try everything before set-up, open the student page in demo mode in this same browser: ' + location.href.replace(/teacher\.html.*$/, 'index.html') + '?demo' }));
+  card.appendChild(el('h3', { text:'Steps (about 15 minutes, in the Firebase console)' }));
+  var ol = el('ol');
+  ['Create a new Firebase project for this page. Keep it separate from your games project, because the rules below replace a project’s existing Firestore rules. Analytics is not needed.',
+   'Build, Firestore Database, Create database. Choose a location in Australia (Melbourne or Sydney). Start in production mode.',
+   'Open the Rules tab of Firestore. Replace everything with the rules below, put your sign-in email in place of YOUR_EMAIL, and press Publish. To add your co-teacher, add their email to the list.',
+   'Build, Authentication, Get started. Under Sign-in method, switch on Email/Password. Under Users, press Add user and enter your email and a password. Do the same for your co-teacher.',
+   'Project settings (the cog), General, Your apps. Add a web app. Copy the two values it shows called projectId and apiKey.',
+   'Open shared.js, and paste the two values into the line near the top that starts: var CLOUD =',
+   'Upload index.html, teacher.html and shared.js to the same folder of your GitHub Pages repository.',
+   'Open teacher.html, sign in, add one test student, then enter that code on the student page and finish an activity. Press Refresh here: the result should appear.'
+  ].forEach(function (s) { ol.appendChild(el('li', { text:s })); });
+  card.appendChild(ol);
+  card.appendChild(el('h3', { text:'Firestore rules' }));
+  card.appendChild(el('pre', { text:
+"rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n" +
+"    function teacher() {\n      return request.auth != null && request.auth.token.email in ['YOUR_EMAIL'];\n    }\n" +
+"    // The list of valid codes. Teachers only.\n    match /roster/{code} {\n      allow read, write: if teacher();\n    }\n" +
+"    // One record for each student code. A student can read and save\n    // their own record by knowing the code. Only teachers can list them.\n    match /students/{code} {\n      allow get: if true;\n      allow list, delete: if teacher();\n      allow create, update: if exists(/databases/$(database)/documents/roster/$(code))\n        && request.resource.data.keys().hasOnly(['data', 'updated'])\n        && request.resource.data.data is string\n        && request.resource.data.data.size() < 200000;\n    }\n" +
+"    // Teacher ticks. Students can read their own. Only teachers can change them.\n    match /signoffs/{code} {\n      allow get: if true;\n      allow list, write: if teacher();\n    }\n  }\n}" }));
+  card.appendChild(el('h3', { text:'What is stored, and where' }));
+  var ul = el('ul');
+  ['Online: each student’s code, their self-check results, their "I feel confident" ticks and your "Shown to me" ticks. No names, emails or other details.',
+   'On this device only: the list that links each code to a name. Use "Save name list to a file" to copy it to another device or to your co-teacher.',
+   'Anyone who knows a student’s code can see and add to that student’s results, so treat codes like a locker number: private, but not a password for anything important.'
+  ].forEach(function (s) { ul.appendChild(el('li', { text:s })); });
+  card.appendChild(ul);
+}
+
+/* ---------- start ---------- */
+function start() {
+  note('');
+  if (Cloud.mode === 'demo' && !Cloud.isTeacher()) { Cloud.signIn('demo', '').then(start); return; }
+  if (!Cloud.isTeacher()) { drawSignIn(); return; }
+  loadAll().then(function () { go(current === 'student' ? 'report' : current); });
+}
+start();
+</script>
+</body>
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Year 11 Biology Self-Check</title>
+<style>
+  :root { --ink:#1f2933; --quiet:#52606d; --line:#cbd2d9; --bg:#f5f7fa; --card:#ffffff; --accent:#1f6f8b; --accent-soft:#e1f1f6; --good:#1b7f4b; --good-soft:#e3f5ea; --fix:#a15c00; --fix-soft:#fdf1dd; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Arial, Helvetica, sans-serif; font-size:17px; line-height:1.5; color:var(--ink); background:var(--bg); }
+  header { background:var(--accent); color:#fff; padding:18px 16px; }
+  header h1 { margin:0; font-size:24px; }
+  header p { margin:4px 0 0; font-size:15px; opacity:.95; }
+  main { max-width:820px; margin:0 auto; padding:14px 14px 60px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 16px; }
+  nav button { flex:1 1 150px; padding:12px 10px; font-size:16px; border:2px solid var(--accent); background:#fff; color:var(--accent); border-radius:8px; cursor:pointer; font-weight:bold; }
+  nav button[aria-selected="true"] { background:var(--accent); color:#fff; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  h2 { font-size:21px; margin:0 0 8px; }
+  h3 { font-size:17px; margin:14px 0 6px; }
+  .why { background:var(--accent-soft); border-left:5px solid var(--accent); padding:10px 12px; border-radius:6px; margin:10px 0; font-size:16px; }
+  .opt { display:block; width:100%; text-align:left; padding:12px 14px; margin:8px 0; font-size:17px; border:2px solid var(--line); background:#fff; color:var(--ink); border-radius:8px; cursor:pointer; }
+  .opt:hover { border-color:var(--accent); }
+  .opt.picked { border-color:var(--accent); background:var(--accent-soft); }
+  .opt.right { border-color:var(--good); background:var(--good-soft); }
+  .opt.wrong { border-color:var(--fix); background:var(--fix-soft); }
+  .opt:disabled { cursor:default; color:var(--ink); }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+  .btn { padding:11px 18px; font-size:16px; font-weight:bold; border-radius:8px; border:2px solid var(--accent); background:var(--accent); color:#fff; cursor:pointer; }
+  .btn.alt { background:#fff; color:var(--accent); }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .fb { border-radius:8px; padding:12px 14px; margin-top:12px; }
+  .fb.good { background:var(--good-soft); border:1px solid var(--good); }
+  .fb.fix { background:var(--fix-soft); border:1px solid var(--fix); }
+  .fb p { margin:6px 0; }
+  .fb .lab { font-weight:bold; }
+  .progress { font-size:15px; color:var(--quiet); margin-bottom:6px; }
+  table { border-collapse:collapse; width:100%; margin:8px 0; }
+  th, td { border:1px solid var(--line); padding:8px; text-align:left; font-size:16px; vertical-align:top; }
+  th { background:#eef1f4; }
+  select { width:100%; padding:9px; font-size:16px; border:2px solid var(--line); border-radius:6px; background:#fff; color:var(--ink); }
+  select.right { border-color:var(--good); background:var(--good-soft); }
+  select.wrong { border-color:var(--fix); background:var(--fix-soft); }
+  svg { width:100%; height:auto; display:block; background:#fff; border:1px solid var(--line); border-radius:8px; }
+  .small { font-size:15px; color:var(--quiet); }
+  .hint { font-size:15px; color:var(--fix); margin-top:4px; }
+  ul.todo { padding-left:20px; }
+  ul.todo li { margin:8px 0; }
+  .score { font-size:19px; font-weight:bold; }
+  .idbar { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:12px; font-size:16px; }
+  .idbar input { padding:10px; font-size:18px; width:170px; border:2px solid var(--line); border-radius:6px; text-transform:uppercase; letter-spacing:1px; }
+  .idbar .code { font-weight:bold; letter-spacing:1px; }
+  .state-ok { color:var(--good); font-weight:bold; }
+  .state-wait { color:var(--fix); font-weight:bold; }
+  .btn.mini { padding:6px 10px; font-size:14px; }
+  .demo { background:var(--fix-soft); border:1px solid var(--fix); border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:15px; }
+  td.tick { width:120px; text-align:center; }
+  td.tick input { width:26px; height:26px; cursor:pointer; }
+  .yes { color:var(--good); font-weight:bold; }
+  .ev { display:block; font-size:14px; color:var(--quiet); margin-top:3px; }
+  .ev.notyet { color:var(--fix); }
+  .ev.secure { color:var(--good); }
+  @media print { nav, .btn, .idbar, .demo { display:none; } body { background:#fff; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Year 11 Biology Self-Check</h1>
+  <p>Test yourself. Find out what to fix. Come back in a few days and try again.</p>
+</header>
+<main>
+  <div id="demo"></div>
+  <div class="why" id="why"></div>
+  <div id="idbar"></div>
+  <nav id="nav" role="tablist"></nav>
+  <div id="view"></div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+/* Student page. Questions, checklist and storage settings are in shared.js. */
+
+/* ---------- this student's progress ---------- */
+var KEY = 'y11bio-selfcheck-v1';
+var mem = { label:{ tries:[] }, sets:{}, conf:{}, shown:{}, code:null, dirty:false };
+function progress() { return { label:mem.label, sets:mem.sets, conf:mem.conf }; }
+function setProgress(p) { mem.label = p.label; mem.sets = p.sets; mem.conf = p.conf; }
+function load() {
+  var raw = {};
+  try { raw = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { raw = {}; }
+  setProgress(mergeProgress(raw, {}));
+  mem.shown = raw.shown || {}; mem.code = raw.code || null; mem.dirty = !!raw.dirty;
+}
+function store() { try { localStorage.setItem(KEY, JSON.stringify(mem)); } catch (e) { /* keep in memory only */ } }
+var syncTimer = null;
+function save() { mem.dirty = true; store(); clearTimeout(syncTimer); syncTimer = setTimeout(sync, 600); }
+
+/* ---------- saving online ---------- */
+var syncing = false, again = false, syncState = '', codeMsg = '';
+function sync() {
+  if (Cloud.mode === 'device' || !mem.code) return Promise.resolve();
+  if (syncing) { again = true; return Promise.resolve(); }
+  syncing = true; syncState = 'saving'; drawId();
+  var code = mem.code, before = JSON.stringify([progress(), mem.shown]);
+  function done(state) {
+    syncing = false; syncState = state; store(); drawId();
+    if (JSON.stringify([progress(), mem.shown]) !== before && (current === 'checklist' || current === 'summary')) go(current);
+    if (again) { again = false; return sync(); }
+  }
+  function badCode() { mem.code = null; codeMsg = 'The code ' + code + ' is not on your teacher’s list. Check it and type it again.'; return done(''); }
+  return Cloud.get('students', code).then(function (r) {
+    if (r.status !== 200 && r.status !== 404) return done('offline');
+    if (r.status === 200) setProgress(mergeProgress(progress(), r.data));
+    var send = (r.status === 404 || mem.dirty) ? Cloud.put('students', code, progress()) : Promise.resolve({ status:200 });
+    return send.then(function (w) {
+      if (w.status === 403) return badCode();
+      if (w.status !== 200) return done('offline');
+      mem.dirty = false;
+      return Cloud.get('signoffs', code).then(function (s) {
+        if (s.status === 200) mem.shown = s.data || {}; else if (s.status === 404) mem.shown = {};
+        return done('ok');
+      });
+    });
+  });
+}
+
+/* ---------- the code bar ---------- */
+var idbar = document.getElementById('idbar');
+function drawId() {
+  idbar.innerHTML = ''; idbar.className = '';
+  if (Cloud.mode === 'device') return;
+  idbar.className = 'idbar';
+  if (!mem.code) {
+    var input = el('input', { type:'text', maxlength:'9', placeholder:'ABCD-234', 'aria-label':'Your code', autocomplete:'off' });
+    var msg = el('div', { cls:'hint', text:codeMsg });
+    var go1 = function () {
+      var c = normCode(input.value);
+      if (!c) { msg.textContent = 'A code has four letters and three numbers, like ABCD-234. Check it and try again.'; return; }
+      codeMsg = ''; mem.code = c; store(); sync();
+    };
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') go1(); });
+    idbar.appendChild(el('div', null, [el('strong', { text:'Save your progress. ' }), document.createTextNode('Type the code your teacher gave you.')]));
+    idbar.appendChild(el('div', { cls:'row' }, [input, el('button', { cls:'btn', text:'Save my code', onclick:go1 })]));
+    idbar.appendChild(msg);
+    idbar.appendChild(el('div', { cls:'small', text:'No code yet? You can still use this page. Your results stay on this device until you add your code.' }));
+    return;
+  }
+  var state = syncState === 'ok' ? el('span', { cls:'state-ok', text:'Saved online.' })
+    : syncState === 'offline' ? el('span', { cls:'state-wait', text:'Not saved online yet. Your results are safe on this device and will be sent when you are connected.' })
+    : el('span', { cls:'small', text:'Saving...' });
+  var out = el('button', { cls:'btn alt mini', text:'This is not my code', onclick:function (ev) {
+    var b = ev.currentTarget;
+    if (b.getAttribute('data-armed')) { mem = { label:{ tries:[] }, sets:{}, conf:{}, shown:{}, code:null, dirty:false }; syncState = ''; store(); drawId(); go('label'); }
+    else { b.setAttribute('data-armed', '1'); b.textContent = 'Press again: this device will forget the code and its results'; }
+  } });
+  idbar.appendChild(el('div', null, [document.createTextNode('Your code: '), el('span', { cls:'code', text:mem.code }), document.createTextNode('  '), state]));
+  idbar.appendChild(el('div', { cls:'row' }, [out]));
+}
+
+/* ---------- helpers ---------- */
+function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+var view = document.getElementById('view'), nav = document.getElementById('nav');
+var TABS = [{ id:'label', title:'Label the cell' }].concat(SETS.map(function (s) { return { id:s.id, title:s.title }; })).concat([{ id:'checklist', title:'My checklist' }, { id:'summary', title:'My summary' }]);
+var current = 'label';
+function drawNav() {
+  nav.innerHTML = '';
+  TABS.forEach(function (t) { nav.appendChild(el('button', { role:'tab', 'aria-selected': String(t.id === current), text:t.title, onclick:function () { go(t.id); } })); });
+}
+function go(id) { current = id; drawNav(); view.innerHTML = ''; if (id === 'label') drawLabel(); else if (id === 'summary') drawSummary(); else if (id === 'checklist') drawChecklist(); else drawSet(SETS.filter(function (s) { return s.id === id; })[0]); window.scrollTo(0, 0); }
+
+/* ---------- label the cell ---------- */
+function cellSvg() {
+  var chl = function (x, y, r) { return '<g transform="translate(' + x + ' ' + y + ') rotate(' + r + ')"><ellipse rx="26" ry="13" fill="#7dbb55" stroke="#3f7a26" stroke-width="2"/><path d="M-14 -5H14M-17 0H17M-14 5H14" stroke="#3f7a26" stroke-width="1.5" fill="none"/></g>'; };
+  var mit = function (x, y, r) { return '<g transform="translate(' + x + ' ' + y + ') rotate(' + r + ')"><ellipse rx="21" ry="10" fill="#f4bd78" stroke="#b46a1c" stroke-width="2"/><path d="M-14 0l5 -5l5 10l5 -10l5 10l5 -5" stroke="#b46a1c" stroke-width="1.5" fill="none"/></g>'; };
+  var num = function (n, x, y, px, py) { return '<line x1="' + x + '" y1="' + y + '" x2="' + px + '" y2="' + py + '" stroke="#1f2933" stroke-width="1.5"/><circle cx="' + px + '" cy="' + py + '" r="3.5" fill="#1f2933"/><circle cx="' + x + '" cy="' + y + '" r="13" fill="#fff" stroke="#1f2933" stroke-width="2"/><text x="' + x + '" y="' + (y + 5) + '" text-anchor="middle" font-family="Arial" font-size="15" font-weight="bold" fill="#1f2933">' + n + '</text>'; };
+  return '<svg viewBox="0 0 520 384" role="img" aria-label="Diagram of a plant cell with seven numbered parts">' +
+    '<rect x="40" y="42" width="440" height="300" rx="26" fill="#cfe3b4" stroke="#5d7a3a" stroke-width="3"/>' +
+    '<rect x="54" y="56" width="412" height="272" rx="16" fill="#f6f9ea" stroke="#b0481e" stroke-width="3"/>' +
+    '<path d="M150 202C150 142 220 117 280 122C350 127 395 162 390 212C385 267 320 287 255 284C190 282 150 257 150 202Z" fill="#d7ecf7" stroke="#5a93b5" stroke-width="2"/>' +
+    '<circle cx="120" cy="122" r="38" fill="#dccdf0" stroke="#6b4fa0" stroke-width="2"/><circle cx="130" cy="114" r="11" fill="#8f72c4"/>' +
+    chl(400, 98, -20) + chl(425, 250, 35) + chl(132, 300, 8) + chl(305, 84, 0) +
+    mit(108, 228, 60) + mit(360, 304, -10) + mit(215, 96, 15) +
+    num(1, 20, 190, 46, 190) + num(2, 500, 150, 466, 150) + num(3, 70, 20, 108, 100) + num(4, 260, 366, 260, 230) + num(5, 440, 20, 404, 92) + num(6, 400, 366, 364, 306) + num(7, 190, 366, 232, 308) +
+    '</svg>';
+}
+function drawLabel() {
+  var card = el('div', { cls:'card' });
+  card.appendChild(el('h2', { text:'Label the plant cell' }));
+  card.appendChild(el('p', { text:'Choose a name and a job for each numbered part. Do it from memory first, then press Check.' }));
+  var holder = el('div'); holder.innerHTML = cellSvg(); card.appendChild(holder);
+  var names = shuffle(PARTS.map(function (p) { return p.name; }).concat([EXTRA_NAME]));
+  var jobs = shuffle(PARTS.map(function (p) { return p.job; }));
+  var tbl = el('table'); tbl.appendChild(el('tr', null, [el('th', { text:'Part' }), el('th', { text:'Name' }), el('th', { text:'Job' })]));
+  var rows = PARTS.map(function (p) {
+    var mk = function (list, lab) { var s = el('select', { 'aria-label': lab + ' for part ' + p.n }); s.appendChild(el('option', { value:'', text:'Choose...' })); list.forEach(function (x) { s.appendChild(el('option', { value:x, text:x })); }); return s; };
+    var ns = mk(names, 'Name'), js = mk(jobs, 'Job'), hint = el('div', { cls:'hint' });
+    tbl.appendChild(el('tr', null, [el('td', { text:String(p.n) }), el('td', null, [ns, hint]), el('td', null, [js])]));
+    return { p:p, ns:ns, js:js, hint:hint };
+  });
+  card.appendChild(tbl);
+  var out = el('div');
+  var check = el('button', { cls:'btn', text:'Check', onclick:function () {
+    var right = 0, total = PARTS.length * 2, missed = [], given = {};
+    rows.forEach(function (r) {
+      var okN = r.ns.value === r.p.name, okJ = r.js.value === r.p.job;
+      given[r.p.name] = r.ns.value;
+      r.ns.className = okN ? 'right' : 'wrong'; r.js.className = okJ ? 'right' : 'wrong';
+      r.hint.textContent = okN ? '' : r.p.hint;
+      right += (okN ? 1 : 0) + (okJ ? 1 : 0);
+      if (!okN || !okJ) missed.push(r.p.name);
+    });
+    out.innerHTML = '';
+    var swapped = given['Cell wall'] === 'Cell membrane' && given['Cell membrane'] === 'Cell wall';
+    if (right === total) {
+      out.appendChild(el('div', { cls:'fb good' }, [el('p', { cls:'score', text:'All ' + total + ' correct.' }), el('p', { text:'Come back in a few days and do it again without looking. That is what makes it stay.' })]));
+    } else {
+      var box = el('div', { cls:'fb fix' }, [el('p', { cls:'score', text:right + ' out of ' + total + ' correct.' })]);
+      if (swapped) {
+        box.appendChild(el('p', null, [el('span', { cls:'lab', text:'The mistake: ' }), document.createTextNode('You swapped the cell wall and the cell membrane.')]));
+        box.appendChild(el('p', null, [el('span', { cls:'lab', text:'Why it matters: ' }), document.createTextNode('The membrane controls what enters and leaves the cell. Much of Unit 1 depends on it.')]));
+        box.appendChild(el('p', null, [el('span', { cls:'lab', text:'What to do: ' }), document.createTextNode('Draw a plant cell from memory. Label the wall and the membrane, and write one job for each.')]));
+      }
+      box.appendChild(el('p', { text:'Read the hints under the orange boxes, change your answers, and press Check again.' }));
+      out.appendChild(box);
+    }
+    mem.label.tries = mergeTries(mem.label.tries, [{ id:newId(), t:Date.now(), date:today(), right:right, total:total, missed:missed }]);
+    save();
+  } });
+  card.appendChild(el('div', { cls:'row' }, [check, el('button', { cls:'btn alt', text:'Start again', onclick:function () { go('label'); } })]));
+  card.appendChild(out);
+  view.appendChild(card);
+}
+
+/* ---------- question sets ---------- */
+function drawSet(set) {
+  var i = 0, results = [];
+  var card = el('div', { cls:'card' }); view.appendChild(card);
+  function finish() {
+    var first = results.filter(function (r) { return r.first; }).length;
+    if (!mem.sets[set.id]) mem.sets[set.id] = { tries:[] };
+    mem.sets[set.id].tries = mergeTries(mem.sets[set.id].tries, [{ id:newId(), t:Date.now(), date:today(), right:first, total:set.questions.length, results:results }]);
+    save();
+    card.innerHTML = '';
+    card.appendChild(el('h2', { text:set.title + ': finished' }));
+    card.appendChild(el('p', { cls:'score', text:first + ' out of ' + set.questions.length + ' correct on the first try.' }));
+    var fix = results.filter(function (r) { return !r.first || r.guess; });
+    if (fix.length) { card.appendChild(el('p', { text:'Your summary lists what to work on.' })); } else { card.appendChild(el('p', { text:'Nothing to fix this time. Try again in a few days to check it has stayed.' })); }
+    card.appendChild(el('div', { cls:'row' }, [el('button', { cls:'btn', text:'See my summary', onclick:function () { go('summary'); } }), el('button', { cls:'btn alt', text:'Do this set again', onclick:function () { go(set.id); } })]));
+  }
+  function show() {
+    var q = set.questions[i], picked = null, tries = 0, firstRight = null, firstWrong = null, guess = false, done = false;
+    card.innerHTML = '';
+    card.appendChild(el('div', { cls:'progress', text:set.title + ': question ' + (i + 1) + ' of ' + set.questions.length }));
+    if (i === 0) card.appendChild(el('p', { cls:'small', text:set.intro }));
+    card.appendChild(el('h2', { text:q.q }));
+    if (q.table) { var t = el('table'); q.table.forEach(function (r) { t.appendChild(el('tr', null, r.map(function (c, ci) { return el(ci === 0 ? 'th' : 'td', { text:c }); }))); }); card.appendChild(t); }
+    var order = shuffle(q.options.map(function (_, k) { return k; })), btns = {};
+    var fb = el('div'), sure = el('div', { cls:'row' });
+    order.forEach(function (k) {
+      var b = el('button', { cls:'opt', text:q.options[k], onclick:function () { if (done) return; picked = k; Object.keys(btns).forEach(function (x) { if (!btns[x].disabled) btns[x].className = 'opt'; }); b.className = 'opt picked'; s1.disabled = false; s2.disabled = false; } });
+      btns[k] = b; card.appendChild(b);
+    });
+    function answer(isGuess) {
+      if (picked === null || done) return;
+      tries++; if (tries === 1) guess = isGuess;
+      var ok = picked === q.answer;
+      if (firstRight === null) { firstRight = ok; if (!ok) firstWrong = picked; }
+      fb.innerHTML = '';
+      if (ok) {
+        done = true; btns[picked].className = 'opt right';
+        Object.keys(btns).forEach(function (x) { btns[x].disabled = true; });
+        var g = el('div', { cls:'fb good' }, [el('p', null, [el('span', { cls:'lab', text: tries === 1 ? 'Correct. ' : 'Correct this time. ' }), document.createTextNode(q.right)])]);
+        if (tries === 1 && isGuess) g.appendChild(el('p', null, [el('span', { cls:'lab', text:'You guessed, so check it: ' }), document.createTextNode('say out loud, or to a partner, why this answer is right.')]));
+        fb.appendChild(g); next();
+      } else {
+        btns[picked].className = 'opt wrong'; btns[picked].disabled = true;
+        var f = q.fb[picked];
+        var w = el('div', { cls:'fb fix' }, [
+          el('p', null, [el('span', { cls:'lab', text:'The mistake: ' }), document.createTextNode(f[0])]),
+          el('p', null, [el('span', { cls:'lab', text:'Why it matters: ' }), document.createTextNode(f[1])]),
+          el('p', null, [el('span', { cls:'lab', text:'What to do: ' }), document.createTextNode(f[2])])]);
+        if (tries >= 2) {
+          done = true; btns[q.answer].className = 'opt right';
+          Object.keys(btns).forEach(function (x) { btns[x].disabled = true; });
+          w.appendChild(el('p', null, [el('span', { cls:'lab', text:'The answer: ' }), document.createTextNode(q.options[q.answer] + '. ' + q.right)]));
+          fb.appendChild(w); next();
+        } else { w.appendChild(el('p', { text:'Now choose again.' })); fb.appendChild(w); picked = null; s1.disabled = true; s2.disabled = true; }
+      }
+    }
+    function next() {
+      sure.innerHTML = '';
+      results.push({ idea:q.idea, first:firstRight, guess:guess, wrong:firstWrong });
+      var last = i === set.questions.length - 1;
+      sure.appendChild(el('button', { cls:'btn', text: last ? 'Finish' : 'Next question', onclick:function () { if (last) finish(); else { i++; show(); window.scrollTo(0, 0); } } }));
+    }
+    var s1 = el('button', { cls:'btn', text:'I am sure', onclick:function () { answer(false); } });
+    var s2 = el('button', { cls:'btn alt', text:'I am guessing', onclick:function () { answer(true); } });
+    s1.disabled = true; s2.disabled = true;
+    sure.appendChild(s1); sure.appendChild(s2);
+    card.appendChild(el('p', { cls:'small', text:'Choose an answer, then say how sure you are.' }));
+    card.appendChild(sure); card.appendChild(fb);
+  }
+  show();
+}
+/* ---------- checklist ---------- */
+function drawChecklist() {
+  var online = Cloud.mode !== 'device';
+  var card = el('div', { cls:'card' }); view.appendChild(card);
+  card.appendChild(el('h2', { text:'My checklist' }));
+  card.appendChild(el('p', { text:'This is what Unit 1, Outcome 1 asks you to be able to do. You will meet these through Semester 1, so most boxes start empty.' }));
+  var steps = el('ol');
+  steps.appendChild(el('li', { text:'Tick "I feel confident" when you can do it without your notes.' }));
+  steps.appendChild(el('li', { text:'Then prove it. Show your teacher: explain it, draw it or answer a question in class.' }));
+  steps.appendChild(el('li', { text: online ? 'Your teacher ticks "Shown to my teacher". Only your teacher can tick that box.' : 'Ask your teacher to sign it off on your paper checklist.' }));
+  card.appendChild(steps);
+  var items = allItems(), nConf = 0, nShown = 0;
+  items.forEach(function (i) { if (mem.conf[i.id] && mem.conf[i.id].on) nConf++; if (mem.shown[i.id]) nShown++; });
+  var count = el('p', { cls:'score', text:'' });
+  function setCount() { count.textContent = 'I feel confident: ' + nConf + ' of ' + items.length + (online ? '.  Shown to my teacher: ' + nShown + ' of ' + items.length + '.' : '.'); }
+  setCount(); card.appendChild(count);
+  CHECKLIST.forEach(function (g) {
+    var tbl = el('table');
+    tbl.appendChild(el('tr', null, [el('th', { text:g.title }), el('th', { text:'I feel confident' }), online ? el('th', { text:'Shown to my teacher' }) : null]));
+    g.items.forEach(function (item) {
+      var ev = evidenceFor(item, progress());
+      var box = el('input', { type:'checkbox', 'aria-label':'I feel confident: ' + item.text });
+      box.checked = !!(mem.conf[item.id] && mem.conf[item.id].on);
+      box.addEventListener('change', function () { mem.conf[item.id] = { on:box.checked, t:Date.now() }; nConf += box.checked ? 1 : -1; setCount(); save(); });
+      var words = el('td', null, [document.createTextNode(item.text)]);
+      if (ev.state !== 'none') words.appendChild(el('span', { cls:'ev ' + ev.state, text:'Self-check: ' + ev.text.charAt(0).toLowerCase() + ev.text.slice(1) + (ev.state === 'notyet' ? '. Try those questions again before you tick.' : '') }));
+      var shown = mem.shown[item.id];
+      tbl.appendChild(el('tr', null, [words, el('td', { cls:'tick' }, [box]), online ? el('td', { cls:'tick' }, [shown ? el('span', { cls:'yes', text:'Yes, ' + shown }) : el('span', { cls:'small', text:'Not yet' })]) : null]));
+    });
+    card.appendChild(tbl);
+  });
+  card.appendChild(el('div', { cls:'row' }, [el('button', { cls:'btn alt', text:'Print', onclick:function () { window.print(); } })]));
+}
+
+/* ---------- summary ---------- */
+function drawSummary() {
+  var card = el('div', { cls:'card' }); view.appendChild(card);
+  card.appendChild(el('h2', { text:'My summary' }));
+  card.appendChild(el('p', { cls:'small', text: Cloud.mode === 'device' ? 'This stays on this device. Show it to your teacher if you want help with anything on it.' : 'Your teacher can see this too, so they know what to help you with.' }));
+  var any = false, p = progress();
+  var tbl = el('table'); tbl.appendChild(el('tr', null, [el('th', { text:'Activity' }), el('th', { text:'First result' }), el('th', { text:'Latest result' }), el('th', { text:'When' }), el('th', { text:'Times tried' })]));
+  [{ id:'label', title:'Label the cell' }].concat(SETS).forEach(function (s) {
+    var tries = triesOf(p, s.id); if (!tries.length) return; any = true;
+    var a = tries[0], z = tries[tries.length - 1];
+    tbl.appendChild(el('tr', null, [el('td', { text:s.title }), el('td', { text:a.right + ' out of ' + a.total }), el('td', null, [el('strong', { text:z.right + ' out of ' + z.total })]), el('td', { text:z.date }), el('td', { text:String(tries.length) })]));
+  });
+  if (!any) { card.appendChild(el('p', { text:'Nothing here yet. Try an activity first.' })); return; }
+  card.appendChild(tbl);
+  card.appendChild(el('p', { cls:'small', text:'For the question sets, the result is the number you got right on the first try.' }));
+  card.appendChild(el('h3', { text:'What to work on' }));
+  var todo = pointsFor(p);
+  if (!todo.length) card.appendChild(el('p', { text:'Nothing to fix from your latest tries. Come back in a few days and test yourself again.' }));
+  else { var ul = el('ul', { cls:'todo' }); todo.forEach(function (t) { ul.appendChild(el('li', null, [el('strong', { text:t.idea + '. ' }), document.createTextNode((t.kind === 'rightGuess' ? 'You were right, but you guessed.' : t.mistake) + ' '), el('br'), el('span', { cls:'lab', text:'What to do: ' }), document.createTextNode(t.todo)])); }); card.appendChild(ul);
+    card.appendChild(el('p', { cls:'small', text:'Do one or two of these, then test yourself again in a few days.' })); }
+  var btns = [el('button', { cls:'btn alt', text:'Print', onclick:function () { window.print(); } })];
+  if (Cloud.mode === 'device') btns.push(el('button', { cls:'btn alt', text:'Clear my results', onclick:function (ev) { var b = ev.currentTarget; if (b.getAttribute('data-armed')) { mem = { label:{ tries:[] }, sets:{}, conf:{}, shown:{}, code:null, dirty:false }; store(); go('summary'); } else { b.setAttribute('data-armed', '1'); b.textContent = 'Press again to clear everything'; } } }));
+  card.appendChild(el('div', { cls:'row' }, btns));
+}
+
+/* ---------- start ---------- */
+(function () {
+  var why = document.getElementById('why');
+  why.appendChild(el('strong', { text:'Why use this? ' }));
+  why.appendChild(document.createTextNode('Pulling an answer out of your memory makes it stronger than reading it again. A wrong answer here is useful: it shows you exactly what to work on. Nothing here is marked. ' +
+    (Cloud.mode === 'device' ? 'Your answers stay on this device.' : 'Your results are saved under your code, so you keep them if you change device. Your teacher can see them, so they know what to help you with.')));
+  if (Cloud.mode === 'demo') document.getElementById('demo').appendChild(el('div', { cls:'demo', text:'Demo mode. Results are kept in this browser only, so you can try the page before online storage is set up.' }));
+  load(); drawId(); go('label'); sync();
+  window.addEventListener('online', sync);
+})();
+</script>
+</body>
+</html>
